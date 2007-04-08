@@ -1,0 +1,86 @@
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in -x sgml origsrc/libcfg+-0.6.2/Rules.make.in src/libcfg+-0.6.2/Rules.make.in
+--- origsrc/libcfg+-0.6.2/Rules.make.in	2004-02-17 10:37:47.000000000 -0600
++++ src/libcfg+-0.6.2/Rules.make.in	2007-04-08 10:09:07.875000000 -0500
+@@ -24,8 +24,8 @@
+ DISTFILES         +=
+ 
+ LIBSTATIC          = $(PACKAGE).a
+-LIBDYNAMIC         = $(PACKAGE).so
+-LIBDYNAMICV        = $(PACKAGE).so.$(VERSION)
++LIBDYNAMIC         = $(PACKAGE).dll.a
++LIBDYNAMICV        = cygcfg+-$(VERSION).dll
+ 
+ install_LIB        = $(LIBSTATIC) $(LIBDYNAMICV)
+ SCRIPTS            =
+@@ -160,7 +160,7 @@
+ 	$(AR) r $@ $(OBJECTS)
+ 
+ $(LIBDYNAMICV):	$(OBJECTS)
+-	$(LD) $(LDFLAGS) -shared -o $@ $(OBJECTS)
++	$(CCLD) $(LDFLAGS) -shared -Wl,--enable-auto-image-base -Wl,--out-implib,$(LIBDYNAMIC) -o $@ $(OBJECTS)
+ 
+ %.o: %.c $(CONFIG_HEADER)
+ 	@echo '$(COMPILE) -c $<'; \
+diff -urN -x CYGWIN-PATCHES -x 'aclocal.m4*' -x autom4te.cache -x config.cache -x config.log -x config.status -x config.h -x config.h.in -x ABOUT-NLS -x Makefile.in.in -x Makevars.template -x '*.class' -x '*.pyc' -x '*.mo' -x '*.gmo' -x '*.orig' -x '*.rej' -x '*.temp' -x '*~' -x '*.stackdump' -x COPYING -x INSTALL -x compile -x config-ml.in -x config.guess -x config.sub -x depcomp -x elisp-comp -x install-sh -x ltmain.sh -x mdate-sh -x missing -x mkinstalldirs -x py-compile -x symlink-tree -x texinfo.tex -x ylwrap -x configure -x omf.make -x xmldocs.make -x gnome-doc-utils.make -x gnome-doc-utils.m4 -x intltool.m4 -x intltool-extract -x intltool-extract.in -x intltool-merge -x intltool-merge.in -x intltool-update -x intltool-update.in -x sgml origsrc/libcfg+-0.6.2/src/Makefile.in src/libcfg+-0.6.2/src/Makefile.in
+--- origsrc/libcfg+-0.6.2/src/Makefile.in	2004-02-17 10:37:47.000000000 -0600
++++ src/libcfg+-0.6.2/src/Makefile.in	2007-04-08 10:12:26.812500000 -0500
+@@ -97,10 +97,11 @@
+ 				  platon/str/strplus.h
+ 
+ LIBSTATIC   = $(PACKAGE).a
+-LIBDYNAMIC  = $(PACKAGE).so
+-LIBDYNAMICV = $(PACKAGE).so.$(VERSION)
++LIBDYNAMIC  = $(PACKAGE).dll.a
++LIBDYNAMICV = cygcfg+-$(VERSION).dll
+ 
+-install_LIB     = $(LIBSTATIC) $(LIBDYNAMICV)
++install_LIB     = $(LIBSTATIC) $(LIBDYNAMIC)
++install_DLL     = $(LIBDYNAMICV)
+ 
+ CONFIG_CLEAN_FILES = Makefile
+ SCRIPTS            =
+@@ -162,12 +163,18 @@
+ 
+ install-lib: $(install_LIB)
+ 	@$(NORMAL_INSTALL)
++	@$(mkinstalldirs) $(DESTDIR)$(bindir)
+ 	@$(mkinstalldirs) $(DESTDIR)$(libdir)
+ 	@list='$(install_LIB)'; for p in $$list; do \
+ 	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
+ 	  echo "	Installing file $(DESTDIR)$(libdir)/$$p"; \
+ 	  $(INSTALL_DATA) $$d$$p $(DESTDIR)$(libdir)/$$p; \
+ 	done
++	@list='$(install_DLL)'; for p in $$list; do \
++	  if test -f "$$p"; then d= ; else d="$(srcdir)/"; fi; \
++	  echo "	Installing file $(DESTDIR)$(bindir)/$$p"; \
++	  $(INSTALL) $$d$$p $(DESTDIR)$(bindir)/$$p; \
++	done
+ uninstall-lib:
+ 	@$(NORMAL_UNINSTALL)
+ 	@list='$(install_LIB)'; for p in $$list; do \
+@@ -217,11 +224,7 @@
+ 		cd platon && $(LN_S) $$p $(include_SYMLINK); \
+ 	  ); \
+ 	  cd $$here; \
+-	done; \
+-	cd $(DESTDIR)$(libdir) && ( \
+-		echo "	Creating symlink $(DESTDIR)$(libdir)/$(LIBDYNAMIC)"; \
+-		$(LN_S) $(LIBDYNAMICV) $(LIBDYNAMIC); \
+-	 );
++	done
+ uninstall-symlinks:
+ 	@$(NORMAL_UNINSTALL)
+ 	-@list='$(include_SYMLINK)'; for p in $$list; do \
+@@ -229,11 +232,7 @@
+ 	  rm -f $(DESTDIR)$(includedir)/$$p; \
+ 	  echo "	rm -f $(DESTDIR)$(includedir_platon)/$$p"; \
+ 	  rm -f $(DESTDIR)$(includedir_platon)/$$p; \
+-	done; \
+-	cd $(DESTDIR)$(libdir) && ( \
+-		echo "	rm -f $(DESTDIR)$(libdir)/$(LIBDYNAMIC)"; \
+-		rm -f $(LIBDYNAMIC); \
+-	 );
++	done
+ 
+ uninstall-dirs:
+ 	@$(NORMAL_UNINSTALL)
